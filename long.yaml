@@ -4,6 +4,7 @@ driving_audio: ./examples/driving_audios/1.wav
 weight_dtype: fp16
 
 data:
+  train_bs: 4
   n_motion_frames: 2
   n_sample_frames: 16
   source_image:
@@ -13,6 +14,7 @@ data:
     sample_rate: 16000
   export_video:
     fps: 25
+  audio_margin: 2
 
 inference_steps: 40
 cfg_scale: 3.5
@@ -37,6 +39,8 @@ face_analysis:
 wav2vec:
   model_path: ./pretrained_models/wav2vec/wav2vec2-base-960h
   features: all
+  audio_type: "vocals"
+  model_scale: "base"
 
 audio_separator:
   model_path: ./pretrained_models/audio_separator/Kim_Vocal_2.onnx
@@ -94,3 +98,30 @@ noise_scheduler_kwargs:
   timestep_spacing: "trailing"
 
 sampler: DDIM
+
+solver:
+  gradient_accumulation_steps: 1
+  mixed_precision: "no"
+  enable_xformers_memory_efficient_attention: True
+  gradient_checkpointing: True
+  max_train_steps: 30000
+  max_grad_norm: 1.0
+  # lr
+  learning_rate: 1e-5
+  scale_lr: False
+  lr_warmup_steps: 1
+  lr_scheduler: "constant"
+
+  # optimizer
+  use_8bit_adam: True
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 1.0e-2
+  adam_epsilon: 1.0e-8
+
+val:
+  validation_steps: 1000
+
+trainable_para:
+  - audio_modules
+  - motion_modules
