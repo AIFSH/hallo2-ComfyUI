@@ -9,11 +9,10 @@ import cv2
 import argparse
 import glob
 import sys
-
-import folder_paths
 import os.path as osp
 now_dir = osp.dirname(osp.abspath(__file__))
-aifsh_dir = osp.join(folder_paths.models_dir,"AIFSH")
+models_dir = osp.join(osp.dirname(now_dir),"..","models")
+aifsh_dir = osp.join(models_dir,"AIFSH")
 hallo_dir = osp.join(aifsh_dir,"HALLO")
 
 import torch
@@ -81,16 +80,16 @@ if __name__ == '__main__':
             help='Balance the quality and fidelity. Default: 0.5')
     parser.add_argument('-s', '--upscale', type=int, default=2, 
             help='The final upsampling scale of the image. Default: 2')
-    parser.add_argument('--has_aligned', action='store_true', help='Input are cropped and aligned faces. Default: False')
-    parser.add_argument('--only_center_face', action='store_true', help='Only restore the center face. Default: False')
-    parser.add_argument('--draw_box', action='store_true', help='Draw the bounding box for the detected faces. Default: False')
+    parser.add_argument('--has_aligned', action='store_true',default=False, help='Input are cropped and aligned faces. Default: False')
+    parser.add_argument('--only_center_face', action='store_true',default=False, help='Only restore the center face. Default: False')
+    parser.add_argument('--draw_box', action='store_true',default=False, help='Draw the bounding box for the detected faces. Default: False')
     # large det_model: 'YOLOv5l', 'retinaface_resnet50'
     # small det_model: 'YOLOv5n', 'retinaface_mobile0.25'
     parser.add_argument('--detection_model', type=str, default='retinaface_resnet50', 
             help='Face detector. Optional: retinaface_resnet50, retinaface_mobile0.25, YOLOv5l, YOLOv5n. \
                 Default: retinaface_resnet50')
-    parser.add_argument('--bg_upsampler', type=str, default='None', help='Background upsampler. Optional: realesrgan')
-    parser.add_argument('--face_upsample', action='store_true', help='Face upsampler after enhancement. Default: False')
+    parser.add_argument('--bg_upsampler', type=str, default='realesrgan', help='Background upsampler. Optional: realesrgan')
+    parser.add_argument('--face_upsample', action='store_true', default=False,help='Face upsampler after enhancement. Default: False')
     parser.add_argument('--bg_tile', type=int, default=400, help='Tile size for background sampler. Default: 400')
     parser.add_argument('--suffix', type=str, default=None, help='Suffix of the restored faces. Default: None')
     
@@ -187,7 +186,6 @@ if __name__ == '__main__':
         
 
     id_list = []
-
     # -------------------- start to processing ---------------------
     for i, idx in enumerate(idx_list):
         # clean all the intermediate results to process the next image

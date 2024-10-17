@@ -18,8 +18,7 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 from omegaconf import OmegaConf
-from .inference import inference_process
-# from inference_long import inference_process
+from .inference_long import inference_process
 from hallo.utils.util import merge_videos
 
 class Hallo2Node:
@@ -33,10 +32,27 @@ class Hallo2Node:
                 "source_image":("IMAGE",),
                 "driving_audio":("AUDIO",),
                 "inference_steps":("INT",{
-                    "default": 40
+                    "default": 40,
+                    "step":1,
+                    "min":5,
+                    "max":100,
+                    "display":"slider"
                 }),
                 "use_cut":("BOOLEAN",{
                     "default": False,
+                    "tooltip":"cut audio into 1 mintues piece"
+                }),
+                "pose_weight":("FLOAT",{
+                    "default":1.0
+                }),
+                "face_weight":("FLOAT",{
+                    "default":1.0
+                }),
+                "lip_weight":("FLOAT",{
+                    "default":1.0
+                }),
+                "face_expand_ratio":("FLOAT",{
+                    "default":1.2
                 }),
                 "seed":("INT",{
                     "default":42
@@ -54,7 +70,9 @@ class Hallo2Node:
     CATEGORY = "AIFSH_hallo2"
 
     def gen_video(self,source_image,driving_audio,inference_steps,
-                  use_cut,seed):
+                  use_cut,pose_weight,face_weight,lip_weight,
+                  face_expand_ratio,seed):
+        shutil.rmtree(save_dir,ignore_errors=True)
         os.makedirs(save_dir,exist_ok=True)
         config = OmegaConf.load(config_file)
         source_image_path = osp.join(save_dir,"source_image.jpg")
@@ -85,24 +103,16 @@ class Hallo2Node:
         config.seed = seed
         config.inference_steps = inference_steps
         config.use_cut = use_cut
+        config.pose_weight = pose_weight
+        config.face_weight = face_weight
+        config.lip_weight = lip_weight
+        config.face_expand_ratio = face_expand_ratio
         save_seg_path = inference_process(config)
         out_video = osp.join(Path(save_seg_path).parent, "merge_video.mp4")
         merge_videos(save_seg_path,out_video)
         time_name = time.time_ns()
         video_name = f"hallo2_{time_name}"
         res_video = osp.join(output_dir,f"{video_name}.mp4")
-        # res_video_2x = osp.join(output_dir,f"hallo2_2x_{time_name}.mp4")
-        '''
-        if if_upscale:
-            result_root = osp.join(save_dir,f'hq_results/{video_name}_{0.5}_{2}')
-            os.makedirs(result_root,exist_ok=True)
-            py =  sys.executable or "python"
-            cmd = f"""{py} {osp.join(now_dir,"video_sr.py")} -i {out_video} -o {result_root}"""
-            os.system(cmd)
-            shutil.copy(osp.join(result_root,f"{video_name}.mp4"), res_video)
-        else:
-            shutil.copy(out_video,res_video)
-        '''
         shutil.copy(out_video,res_video)
         # shutil.rmtree(save_dir,ignore_errors=True)
         return (res_video,)
@@ -122,6 +132,7 @@ class Hallo2UpscaleNode:
                     "default":2,
                     "tooltip":"The final upsampling scale of the image. Default: 2"
                 }),
+                "detection_model":(["retinaface_resnet50", "retinaface_mobile0.25", "YOLOv5l", "YOLOv5n"],),
             }
         }
     RETURN_TYPES = ("VIDEO",)
@@ -133,12 +144,15 @@ class Hallo2UpscaleNode:
 
     CATEGORY = "AIFSH_hallo2"
 
-    def gen_video(self,input_path,fidelity_weight,upscale):
+    def gen_video(self,input_path,fidelity_weight,upscale,detection_model):
         video_name = video_name = os.path.basename(input_path)[:-4]
         result_root = osp.join(save_dir,f'hq_results/{video_name}_{fidelity_weight}_{upscale}')
         os.makedirs(result_root,exist_ok=True)
         py =  sys.executable or "python"
-        cmd = f"""{py} {osp.join(now_dir,"video_sr.py")} -i {input_path} -o {result_root} -w {fidelity_weight} -s {upscale}"""
+        cmd = f"""{py} {osp.join(now_dir,"video_sr.py")} -i {input_path} -o {result_root} \
+        -w {fidelity_weight} -s {upscale} --detection_model {detection_model} \
+              --bg_upsampler "realesrgan" --face_upsample """
+        print(cmd)
         os.system(cmd)
         res_video = osp.join(output_dir,f"{video_name}.mp4")
         shutil.copy(osp.join(result_root,f"{video_name}.mp4"), res_video)

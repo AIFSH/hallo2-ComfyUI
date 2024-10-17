@@ -41,7 +41,7 @@ import numpy as np
 import torchvision.transforms as transforms
 from PIL import Image
 from pydub import AudioSegment
-from comfy.utils import ProgressBar
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from hallo.animate.face_animate import FaceAnimatePipeline
@@ -53,7 +53,7 @@ from hallo.models.image_proj import ImageProjModel
 from hallo.models.unet_2d_condition import UNet2DConditionModel
 from hallo.models.unet_3d import UNet3DConditionModel
 from hallo.utils.config import filter_non_none
-from hallo.utils.util import tensor_to_video_batch, merge_videos
+from hallo.utils.util import tensor_to_video_batch, merge_videos,seed_everything
 
 from icecream import ic
 
@@ -171,10 +171,8 @@ def inference_process(config):
     This function initializes the configuration for the inference process. It sets up the necessary
     modules and variables to prepare for the upcoming inference steps.
     """
+    seed_everything(config.seed)
     # 1. init config
-    # cli_args = filter_non_none(vars(args))
-    # config = OmegaConf.load(args.config)
-    # config = OmegaConf.merge(config, cli_args)
     source_image_path = config.source_image
     driving_audio_path = config.driving_audio
 
@@ -277,7 +275,7 @@ def inference_process(config):
 
     vae = AutoencoderKL.from_pretrained(config.vae.model_path)
     reference_unet = UNet2DConditionModel.from_pretrained(
-        config.base_model_path, subfolder="unet")
+        config.base_model_path, subfolder="unet").to(device=device, dtype=weight_dtype)
     denoising_unet = UNet3DConditionModel.from_pretrained_2d(
         config.base_model_path,
         config.motion_module_path,
@@ -285,15 +283,15 @@ def inference_process(config):
         unet_additional_kwargs=OmegaConf.to_container(
             config.unet_additional_kwargs),
         use_landmark=False,
-    )
+    ).to(device="cuda", dtype=weight_dtype)
     # denoising_unet.set_attn_processor()
 
-    face_locator = FaceLocator(conditioning_embedding_channels=320)
+    face_locator = FaceLocator(conditioning_embedding_channels=320).to(device="cuda", dtype=weight_dtype)
     image_proj = ImageProjModel(
         cross_attention_dim=denoising_unet.config.cross_attention_dim,
         clip_embeddings_dim=512,
         clip_extra_context_tokens=4,
-    )
+    ).to(device="cuda", dtype=weight_dtype)
 
     audio_proj = AudioProjModel(
         seq_len=5,
@@ -324,7 +322,7 @@ def inference_process(config):
         face_locator,
         image_proj,
         audio_proj,
-    )
+    ).to(device=device, dtype=weight_dtype)
 
     m,u = net.load_state_dict(
         torch.load(
@@ -377,7 +375,7 @@ def inference_process(config):
     ic(audio_length)    
     batch_size = 60
     start = 0
-    comfy_par = ProgressBar(times)
+
     for t in range(times):
         print(f"[{t+1}/{times}]")
 
@@ -475,7 +473,6 @@ def inference_process(config):
             tensor_result = last_motion_frame
             audio_length -= length
             start += length
-        comfy_par.update(1)
     
     return save_seg_path
     

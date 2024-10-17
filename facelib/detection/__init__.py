@@ -20,19 +20,25 @@ def init_detection_model(model_name, half=False, device='cuda'):
         raise NotImplementedError(f'{model_name} is not implemented.')
 
     return model
-
+import os.path as osp
+now_dir = osp.dirname(osp.abspath(__file__))
+models_dir = osp.join(osp.dirname(osp.dirname(now_dir)),"..","..","models")
+aifsh_dir = osp.join(models_dir,"AIFSH")
+hallo_dir = osp.join(aifsh_dir,"HALLO")
 
 def init_retinaface_model(model_name, half=False, device='cuda'):
     if model_name == 'retinaface_resnet50':
         model = RetinaFace(network_name='resnet50', half=half)
         model_url = 'https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/detection_Resnet50_Final.pth'
+        model_path = osp.join(hallo_dir,"facelib/detection_Resnet50_Final.pth")
     elif model_name == 'retinaface_mobile0.25':
         model = RetinaFace(network_name='mobile0.25', half=half)
         model_url = 'https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/detection_mobilenet0.25_Final.pth'
+        model_path = osp.join(hallo_dir,"facelib/detection_mobilenet0.25_Final.pth")
     else:
         raise NotImplementedError(f'{model_name} is not implemented.')
 
-    model_path = load_file_from_url(url=model_url, model_dir='pretrained_models/facelib', progress=True, file_name=None)
+    # model_path = load_file_from_url(url=model_url, model_dir='pretrained_models/facelib', progress=True, file_name=None)
     load_net = torch.load(model_path, map_location=lambda storage, loc: storage)
     # remove unnecessary 'module.'
     for k, v in deepcopy(load_net).items():
@@ -46,17 +52,22 @@ def init_retinaface_model(model_name, half=False, device='cuda'):
     return model
 
 
+
 def init_yolov5face_model(model_name, device='cuda'):
     if model_name == 'YOLOv5l':
         model = YoloDetector(config_name='facelib/detection/yolov5face/models/yolov5l.yaml', device=device)
         model_url = 'https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/yolov5l-face.pth'
+        model_path = osp.join(hallo_dir,"facelib/yolov5l-face.pth")
     elif model_name == 'YOLOv5n':
         model = YoloDetector(config_name='facelib/detection/yolov5face/models/yolov5n.yaml', device=device)
         model_url = 'https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/yolov5n-face.pth'
+        model_path = osp.join(hallo_dir,"facelib/yolov5n-face.pth")
     else:
         raise NotImplementedError(f'{model_name} is not implemented.')
     
-    model_path = load_file_from_url(url=model_url, model_dir='pretrained_models/facelib', progress=True, file_name=None)
+    # model_path = load_file_from_url(url=model_url, model_dir='pretrained_models/facelib', progress=True, file_name=None)
+    
+    
     load_net = torch.load(model_path, map_location=lambda storage, loc: storage)
     model.detector.load_state_dict(load_net, strict=True)
     model.detector.eval()
