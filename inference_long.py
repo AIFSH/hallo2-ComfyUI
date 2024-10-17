@@ -261,7 +261,9 @@ def inference_process(config):
                 os.path.join(save_path, "audio_preprocess")
             ) as audio_processor:
                 audio_emb, audio_length = audio_processor.preprocess(driving_audio_path, clip_length)
-
+    del image_processor
+    del audio_processor
+    torch.cuda.empty_cache()
     # 4. build modules
     sched_kwargs = OmegaConf.to_container(config.noise_scheduler_kwargs)
     if config.enable_zero_snr:
