@@ -1,6 +1,7 @@
 # hallo2-ComfyUI
 a custom node for [hallo2](https://github.com/fudan-generative-vision/hallo2),you can find [workflow here](./doc/)
-
+## Disclaimer / 免责声明
+We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws. 我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律法规.
 ## Example
 |driving_audio|source_image|out_video|
 |--|--|--|
